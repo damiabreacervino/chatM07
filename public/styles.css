@@ -1,0 +1,15 @@
+body {
+    margin: 0;
+    padding-bottom: 3rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.myMessage {
+    background-color: red;
+    color: white;
+}
+
+.yourMessage {
+    background-color: blue;
+    color: white;
+}

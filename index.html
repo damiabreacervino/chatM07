@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+    <script src="simplepeer.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <ul id="users"></ul>
+    <div id="mensaje">
+    </div>
+    <div class="mensajes">
+        <div id="mensajesRecibidos">
+        </div>
+    </div>
+
+    <script>
+        var socket = io();
+        let p = null;
+
+        do {
+            var username = prompt("Enter your username");
+        } while (username == null || username == undefined);
+
+        socket.emit('user', username);
+        var usersList = document.getElementById('users');
+
+        socket.on('users', function (users) {
+            usersList.innerHTML = "";
+            for (let i = 0; i < users.length; i++) {
+                var item = document.createElement('li');
+                if (username != users[i].username) {
+                    item.textContent = users[i].username;
+                } else {
+                    item.textContent = "You: " + users[i].username;
+                }
+                usersList.appendChild(item);
+            }
+        });
+
+        document.getElementById('users').addEventListener('click', (e) => {
+            if (username != e.target.textContent) {
+                p = new SimplePeer({
+                    initiator: true,
+                    trickle: false
+                });
+
+                p.on('error', err => console.log('error', err))
+
+                textUser = e.target.textContent;
+                p.on('signal', data => {
+                    socket.emit('offerToken', data, textUser, username);
+                })
+            } else {
+                console.log("No te puedes enviar un mensaje a ti mismo!");
+            }
+        });
+
+        socket.on('offerToken', function (offerToken, username) {
+            p = new SimplePeer({
+                initiator: false,
+                trickle: false
+            });
+
+            p.signal(offerToken);
+
+            p.on('signal', data => {
+                socket.emit('answerToken', data, username);
+            })
+        });
+
+        socket.on('answerToken', function (answerToken) {
+            p.signal(answerToken);
+
+            p.on('signal', data => {
+
+            })
+
+            p.on('connect', () => {
+                socket.emit('conexion');
+            })
+        });
+
+        socket.on("conexion", function () {
+            console.log("Connected!!!");
+            usersList.remove();
+            document.getElementById('mensaje').innerHTML = `
+                    <h2>Enviame un mensajito guapo</h2>
+                    <textarea id="textMensaje"></textarea>
+                    <button id="enviar">Enviar</button>
+                `;
+
+            document.getElementById('enviar').addEventListener('click', () => {
+                var message = document.getElementById('textMensaje').value;
+
+                document.getElementById('mensajesRecibidos').innerHTML += `
+                    <p class="myMessage">You: ${message}</p>
+                `;
+
+                p.send(message);
+            })
+
+            p.on('data', data => {
+                document.getElementById('mensajesRecibidos').innerHTML += `
+                    <p class="yourMessage">${data}</p>
+                `;
+            })
+        })
+    </script>
+</body>
+
+</html>
